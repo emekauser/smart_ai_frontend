@@ -1,0 +1,126 @@
+import { Box, Heading, VStack, Text } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
+
+import CharBubble from "./component/ChatBubble";
+import ChatInput from "./component/ChatInput";
+import type { Chat } from "./component/type";
+import askAgentApi from "./api/askAgentApi";
+import { getCookie, getToken } from "./api/AppCookie";
+import UserForm from "./UserForm";
+
+interface AgentChatViewProps {
+  onCancel: () => void;
+  query: string;
+}
+
+const testChat = [
+  { role: "ai", message: "Hi John, how can i help you" },
+  { role: "human", message: "How can i book a flight" },
+  {
+    role: "ai",
+    message: `To book a flight, I need a few details:
+
+*   What is your departure city?
+*   What is your arrival city?
+*   What is your preferred departure time?`
+  },
+  { role: "ai_loading" }
+];
+
+export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
+  const [email, setEmail] = useState<string | null>(getCookie("email"));
+  const [fullname, setFullname] = useState<string | null>(
+    getCookie("fullname")
+  );
+  const [canUserAccessChat, setCanUserAccessChat] = useState(
+    getToken() !== null
+  );
+  const [chatHistory, setChatHistory] = useState<Chat[]>([
+    {
+      role: "ai",
+      message: `Welcome ${fullname?.split(" ")[0]}, how can i help you`
+    }
+  ]);
+
+  const onSubmitUserData = (
+    token: string | null,
+    email: string,
+    fullname: string
+  ) => {
+    setEmail(email);
+    setFullname(fullname);
+    setCanUserAccessChat(token !== null);
+    if (query !== "") sendMessage(query);
+  };
+
+  const onCancelForm = () => {
+    onCancel();
+  };
+
+  const sendMessage = (message: string) => {
+    setChatHistory([
+      ...chatHistory,
+      {
+        role: "human",
+        message: message
+      },
+      {
+        role: "ai_loading",
+        message: ""
+      }
+    ]);
+
+    askAgentApi(message).then(res => {
+      const chatHistoryCurrent = chatHistory.filter(chat => {
+        return chat.role !== "ai_loading";
+      });
+      console.log(chatHistory, chatHistoryCurrent);
+      setChatHistory([
+        ...chatHistoryCurrent,
+        {
+          role: "human",
+          message: message
+        },
+        {
+          role: "ai",
+          message: res.data.reply
+        }
+      ]);
+    });
+  };
+
+  useEffect(() => {
+    if (query !== "") sendMessage(query);
+  }, [query]);
+
+  return (
+    <>
+      {canUserAccessChat ? (
+        <Box width="100%">
+          <VStack width="100%">
+            <Heading fontSize={{ base: "xl", md: "4xl", lg: "5xl" }}>
+              <Text color="blue.400" as="span" textAlign="left">
+                Flywell AI Agent
+              </Text>
+            </Heading>
+            <Text fontSize={{ base: "md", lg: "lg" }} color={"gray.500"}>
+              Wellcome {fullname?.split(" ")[0]}
+            </Text>
+          </VStack>
+          <VStack h="500px" overflowY="auto">
+            {chatHistory.map(chat => {
+              return <CharBubble chat={chat} />;
+            })}
+          </VStack>
+
+          <ChatInput onChatSend={sendMessage} />
+        </Box>
+      ) : (
+        <UserForm
+          onCancelForm={onCancelForm}
+          onSubmitUserData={onSubmitUserData}
+        />
+      )}
+    </>
+  );
+}
