@@ -13,20 +13,6 @@ interface AgentChatViewProps {
   query: string;
 }
 
-const testChat = [
-  { role: "ai", message: "Hi John, how can i help you" },
-  { role: "human", message: "How can i book a flight" },
-  {
-    role: "ai",
-    message: `To book a flight, I need a few details:
-
-*   What is your departure city?
-*   What is your arrival city?
-*   What is your preferred departure time?`
-  },
-  { role: "ai_loading" }
-];
-
 export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
   const [email, setEmail] = useState<string | null>(getCookie("email"));
   const [fullname, setFullname] = useState<string | null>(
@@ -57,7 +43,7 @@ export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
     onCancel();
   };
 
-  const sendMessage = (message: string) => {
+  const sendMessage = async (message: string) => {
     setChatHistory([
       ...chatHistory,
       {
@@ -70,23 +56,22 @@ export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
       }
     ]);
 
-    askAgentApi(message).then(res => {
-      const chatHistoryCurrent = chatHistory.filter(chat => {
-        return chat.role !== "ai_loading";
-      });
-      console.log(chatHistory, chatHistoryCurrent);
-      setChatHistory([
-        ...chatHistoryCurrent,
-        {
-          role: "human",
-          message: message
-        },
-        {
-          role: "ai",
-          message: res.data.reply
-        }
-      ]);
+    const res = await askAgentApi(message);
+    const chatHistoryCurrent = chatHistory.filter(chat => {
+      return chat.role !== "ai_loading";
     });
+    console.log(chatHistory, chatHistoryCurrent);
+    setChatHistory([
+      ...chatHistoryCurrent,
+      {
+        role: "human",
+        message: message
+      },
+      {
+        role: "ai",
+        message: res.data.reply
+      }
+    ]);
   };
 
   useEffect(() => {
