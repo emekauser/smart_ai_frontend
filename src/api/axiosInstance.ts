@@ -10,7 +10,6 @@ const instance = axios.create({
 
 const token = getToken();
 if (token) {
-  console.log(token, "issacc");
   instance.defaults.headers.common["Authorization"] = `Token ${token}`;
 }
 

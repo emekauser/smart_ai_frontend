@@ -14,21 +14,25 @@ interface AgentChatViewProps {
 }
 
 export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
-  const [email, setEmail] = useState<string | null>(getCookie("email"));
+  const [email, setEmail] = useState<string | null>(getCookie("fw_email"));
   const [fullname, setFullname] = useState<string | null>(
-    getCookie("fullname")
+    getCookie("fw_fullname")
   );
   const [canUserAccessChat, setCanUserAccessChat] = useState(
     getToken() !== null
   );
-  const [chatHistory, setChatHistory] = useState<Chat[]>([
-    {
-      role: "ai",
-      message: `Welcome ${fullname?.split(" ")[0]}, how can i help you`
-    }
-  ]);
+  const [chatHistory, setChatHistory] = useState<Chat[]>(
+    canUserAccessChat
+      ? [
+          {
+            role: "ai",
+            message: `Welcome ${fullname?.split(" ")[0]}, how can i help you`
+          }
+        ]
+      : []
+  );
 
-  const onSubmitUserData = (
+  const onSubmitUserData = async (
     token: string | null,
     email: string,
     fullname: string
@@ -36,6 +40,15 @@ export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
     setEmail(email);
     setFullname(fullname);
     setCanUserAccessChat(token !== null);
+
+    setChatHistory([
+      ...chatHistory,
+      {
+        role: "ai",
+        message: `Welcome ${fullname?.split(" ")[0]}, how can i help you`
+      }
+    ]);
+
     if (query !== "") sendMessage(query);
   };
 
@@ -60,13 +73,9 @@ export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
     const chatHistoryCurrent = chatHistory.filter(chat => {
       return chat.role !== "ai_loading";
     });
-    console.log(chatHistory, chatHistoryCurrent);
+
     setChatHistory([
       ...chatHistoryCurrent,
-      {
-        role: "human",
-        message: message
-      },
       {
         role: "ai",
         message: res.data.reply
@@ -74,9 +83,11 @@ export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
     ]);
   };
 
-  useEffect(() => {
-    if (query !== "") sendMessage(query);
-  }, [query]);
+  // useEffect(() => {
+  //   if (canUserAccessChat && query !== "") {
+  //     sendMessage(query);
+  //   }
+  // }, [query]);
 
   return (
     <>
@@ -93,8 +104,8 @@ export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
             </Text>
           </VStack>
           <VStack h="500px" overflowY="auto">
-            {chatHistory.map(chat => {
-              return <CharBubble chat={chat} />;
+            {chatHistory.map((chat, key) => {
+              return <CharBubble chat={chat} key={key} />;
             })}
           </VStack>
 

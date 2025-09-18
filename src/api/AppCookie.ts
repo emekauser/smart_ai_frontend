@@ -1,11 +1,15 @@
 function storeTokenInCookie(token: string, email: string, fullName: string) {
   let expirationDate = new Date();
+
   expirationDate.setDate(expirationDate.getDate() + 1); // Add 1 day
-  document.cookie = `token=${token};email=${email};fullname=${fullName}; expires=${expirationDate.toUTCString()}; path=/`;
+  document.cookie = `fw_token=${token}`;
+  document.cookie = `fw_email=${email}`;
+  document.cookie = `fw_fullname=${fullName}`;
+  document.cookie = `fw_expires=${expirationDate.toUTCString()};`;
 }
 
 const getToken = () => {
-  return getCookie("token");
+  return getCookie("fw_token");
 };
 
 const getCookie = (name: string) => {
