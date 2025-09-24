@@ -1,11 +1,20 @@
-import { Box, Heading, VStack, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Heading,
+  VStack,
+  Text,
+  Flex,
+  Spacer,
+  IconButton,
+  CloseButton
+} from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
 import CharBubble from "./component/ChatBubble";
 import ChatInput from "./component/ChatInput";
 import type { Chat } from "./component/type";
 import askAgentApi from "./api/askAgentApi";
-import { getCookie, getToken } from "./api/AppCookie";
+import { clearCookie, getCookie, getToken } from "./api/AppCookie";
 import UserForm from "./UserForm";
 
 interface AgentChatViewProps {
@@ -69,31 +78,53 @@ export default function AgentChatView({ onCancel, query }: AgentChatViewProps) {
       }
     ]);
 
-    const res = await askAgentApi(message);
-    const chatHistoryCurrent = chatHistory.filter(chat => {
-      return chat.role !== "ai_loading";
-    });
+    try {
+      const res = await askAgentApi(message);
+      const chatHistoryCurrent = chatHistory.filter(chat => {
+        return chat.role !== "ai_loading";
+      });
 
-    setChatHistory([
-      ...chatHistoryCurrent,
-      {
-        role: "ai",
-        message: res.data.reply
+      setChatHistory([
+        ...chatHistoryCurrent,
+        {
+          role: "human",
+          message: message
+        },
+        {
+          role: "ai",
+          message: res.data.reply
+        }
+      ]);
+    } catch (error) {
+      if (error.status === 401) {
+        clearCookie();
+        alert("Please Re authenticate");
       }
-    ]);
+      console.error(error);
+    }
   };
 
-  // useEffect(() => {
-  //   if (canUserAccessChat && query !== "") {
-  //     sendMessage(query);
-  //   }
-  // }, [query]);
+  const closeChat = () => {
+    setChatHistory([]);
+    setCanUserAccessChat(false);
+    onCancelForm();
+  };
+
+  useEffect(() => {
+    if (canUserAccessChat && query !== "") {
+      sendMessage(query);
+    }
+  }, [query]);
 
   return (
     <>
       {canUserAccessChat ? (
         <Box width="100%">
           <VStack width="100%">
+            <Flex width="100%">
+              <Spacer />
+              <CloseButton bg="gray.50" onClick={closeChat}></CloseButton>
+            </Flex>
             <Heading fontSize={{ base: "xl", md: "4xl", lg: "5xl" }}>
               <Text color="blue.400" as="span" textAlign="left">
                 Flywell AI Agent
